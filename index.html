@@ -166,15 +166,13 @@
                         <th>Ημερομηνία</th>
                         <th>Αγώνας</th>
                         <th>Pick</th>
-                        <th>Main Stake</th>
-                        <th>Cover Stake</th>
                         <th>Conf</th>
                         <th>Αποτέλεσμα</th>
                         <th>Games</th>
                     </tr>
                 </thead>
                 <tbody id="bets-tbody">
-                    <tr><td colspan="8" class="loading">Φόρτωση...</td></tr>
+                    <tr><td colspan="6" class="loading">Φόρτωση...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -200,7 +198,7 @@
                 document.getElementById('monthly-tbody').innerHTML = 
                     `<tr><td colspan="6" class="error">❌ Σφάλμα: ${err.message}</td></tr>`;
                 document.getElementById('bets-tbody').innerHTML = 
-                    `<tr><td colspan="8" class="error">❌ Σφάλμα: ${err.message}</td></tr>`;
+                    `<tr><td colspan="6" class="error">❌ Σφάλμα: ${err.message}</td></tr>`;
             }
         }
 
@@ -255,18 +253,16 @@
                     <td>${bet.match_date}</td>
                     <td>${bet.player1} vs ${bet.player2}</td>
                     <td>${bet.selected_pick || '-'}</td>
-                    <td>€${bet.main_stake || '0.00'}</td>
-                    <td>€${bet.cover_stake || '0.00'}</td>
                     <td>${bet.confidence || '-'}/10</td>
                     <td class="${cls}">${bet.result || 'PENDING'}</td>
                     <td>${bet.actual_games || '-'}</td>
                 </tr>`;
             });
-            document.getElementById('bets-tbody').innerHTML = html || '<tr><td colspan="8" style="text-align:center;padding:40px;">Δεν υπάρχουν δεδομένα</td></tr>';
+            document.getElementById('bets-tbody').innerHTML = html || '<tr><td colspan="6" style="text-align:center;padding:40px;">Δεν υπάρχουν δεδομένα</td></tr>';
         }
 
         loadData();
-        setInterval(loadData, 21600000); // Refresh every 6 hours
+        setInterval(loadData, 21600000);
     </script>
 </body>
 </html>
