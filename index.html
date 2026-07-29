@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sports Betting Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CDN loads global supabase object; we use sb as local variable -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -177,6 +178,7 @@
             border-bottom: 2px solid #334155;
         }
     </style>
+<base target="_blank">
 </head>
 <body>
     <div class="header">
@@ -185,8 +187,8 @@
     </div>
 
     <div class="tabs">
-        <div class="tab active" onclick="showTab('tennis')">🎾 Tennis Bot</div>
-        <div class="tab" onclick="showTab('other')">🤖 Άλλο Bot</div>
+        <div class="tab active" onclick="showTab('tennis', this)">🎾 Tennis Bot</div>
+        <div class="tab" onclick="showTab('other', this)">🤖 Άλλο Bot</div>
     </div>
 
     <div class="container">
@@ -287,20 +289,20 @@
         // ============================================
         // CONFIG: Replace these with your Supabase credentials
         // ============================================
-        const SUPABASE_URL = 'https://gxvvvlxcvzkphvsmgjhl.supabase.co';  // <-- YOUR URLSUPABASE_URL=https://gxvvvlxcvzkphvsmgjhl.supabase.co
+        const SUPABASE_URL = 'https://gxvvvlxcvzkphvsmgjhl.supabase.co';  // <-- YOUR URL
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dnZ2bHhjdnprcGh2c21namhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNDEwNDYsImV4cCI6MjEwMDkxNzA0Nn0.Mkt-RXoDQdtvMgwX9WwgyQcE63DbFJrh22G1cKkjGdA';  // <-- YOUR ANON/PUBLISHABLE KEY
 
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
         let allBets = [];
 
         // ============================================
         // TAB SWITCHING
         // ============================================
-        function showTab(tabName) {
+        function showTab(tabName, clickedTab) {
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            clickedTab.classList.add('active');
         }
 
         // ============================================
