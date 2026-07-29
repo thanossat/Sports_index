@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Betting Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 20px 40px;
+            border-bottom: 2px solid #334155;
+        }
+        .header h1 {
+            font-size: 28px;
+            color: #38bdf8;
+        }
+        .header p {
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+        .tabs {
+            display: flex;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 0 40px;
+        }
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .tab:hover {
+            color: #e2e8f0;
+            background: #334155;
+        }
+        .tab.active {
+            color: #38bdf8;
+            border-bottom-color: #38bdf8;
+            background: #0f172a;
+        }
+        .container {
+            padding: 30px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+        .stat-card h3 {
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .stat-card .value.positive { color: #4ade80; }
+        .stat-card .value.negative { color: #f87171; }
+        .stat-card .value.neutral { color: #38bdf8; }
+
+        /* Tables */
+        .table-container {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .table-header {
+            padding: 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .table-header h2 {
+            font-size: 18px;
+            color: #e2e8f0;
+        }
+        .filter-select {
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        th {
+            background: #0f172a;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tr:hover { background: #334155; }
+        td { font-size: 14px; }
+        .win { color: #4ade80; font-weight: 600; }
+        .loss { color: #f87171; font-weight: 600; }
+        .pending { color: #fbbf24; font-weight: 600; }
+        .pl-positive { color: #4ade80; }
+        .pl-negative { color: #f87171; }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #94a3b8;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #334155;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Error */
+        .error {
+            background: #451a1a;
+            border: 1px solid #7f1d1d;
+            color: #fca5a5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        /* Monthly Summary specific */
+        .month-row { font-weight: 600; }
+        .year-header {
+            background: #0f172a;
+            color: #38bdf8;
+            font-size: 16px;
+            padding: 15px;
+            border-bottom: 2px solid #334155;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎾 Sports_index Dashboard</h1>
+        <p>Real-time stats from Supabase • Tennis Bot + More • Auto-refresh every 6h</p>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('tennis')">🎾 Tennis Bot</div>
+        <div class="tab" onclick="showTab('other')">🤖 Άλλο Bot</div>
+    </div>
+
+    <div class="container">
+        <!-- TENNIS TAB -->
+        <div id="tennis" class="panel active">
+            <div class="stats-grid" id="tennis-stats">
+                <div class="stat-card">
+                    <h3>Συνολικά Bets</h3>
+                    <div class="value neutral" id="total-bets">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Win Rate</h3>
+                    <div class="value neutral" id="win-rate">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total P/L</h3>
+                    <div class="value neutral" id="total-pl">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <div class="value neutral" id="pending-count">-</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>📊 Monthly Summary</h2>
+                </div>
+                <table id="monthly-table">
+                    <thead>
+                        <tr>
+                            <th>Έτος</th>
+                            <th>Μήνας</th>
+                            <th>Bets</th>
+                            <th>Wins</th>
+                            <th>Losses</th>
+                            <th>Win Rate</th>
+                            <th>Total P/L (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthly-tbody">
+                        <tr><td colspan="7" class="loading">Φόρτωση δεδομένων...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>📝 Όλα τα Bets</h2>
+                    <select class="filter-select" id="result-filter" onchange="filterBets()">
+                        <option value="all">Όλα</option>
+                        <option value="WIN">Wins</option>
+                        <option value="LOSS">Losses</option>
+                        <option value="PENDING">Pending</option>
+                    </select>
+                </div>
+                <table id="bets-table">
+                    <thead>
+                        <tr>
+                            <th>Ημερομηνία</th>
+                            <th>Αγώνας</th>
+                            <th>Pick</th>
+                            <th>Main Stake</th>
+                            <th>Cover Stake</th>
+                            <th>Conf</th>
+                            <th>Αποτέλεσμα</th>
+                            <th>P/L (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bets-tbody">
+                        <tr><td colspan="8" class="loading">Φόρτωση δεδομένων...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- OTHER BOT TAB -->
+        <div id="other" class="panel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Coming Soon</h3>
+                    <div class="value neutral">🚧</div>
+                </div>
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <h2>🤖 Άλλο Bot</h2>
+                </div>
+                <div style="padding: 60px; text-align: center; color: #94a3b8;">
+                    <p style="font-size: 18px; margin-bottom: 10px;">Εδώ θα μπει ο πίνακας από το άλλο bot σου.</p>
+                    <p>Πρόσθεσε ένα νέο table στη Supabase και αντιγράψε τη λογική του tennis tab.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIG: Replace these with your Supabase credentials
+        // ============================================
+        const SUPABASE_URL = 'https://gxvvvlxcvzkphvsmgjhl.supabase.co';  // <-- YOUR URL
+        const SUPABASE_KEY = 'eyJ...';  // <-- YOUR ANON/PUBLISHABLE KEY
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        let allBets = [];
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+        function showTab(tabName) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ============================================
+        // LOAD DATA
+        // ============================================
+        async function loadTennisData() {
+            try {
+                const { data, error } = await supabase
+                    .from('tennis_bets')
+                    .select('*')
+                    .order('match_date', { ascending: false });
+
+                if (error) throw error;
+
+                allBets = data || [];
+                renderStats(allBets);
+                renderMonthlySummary(allBets);
+                renderBetsTable(allBets);
+
+            } catch (err) {
+                console.error('Error loading data:', err);
+                document.getElementById('monthly-tbody').innerHTML = 
+                    `<tr><td colspan="7" class="error">❌ Σφάλμα φόρτωσης: ${err.message}<br><br>
+                    Βεβαιώσου ότι τα SUPABASE_URL και SUPABASE_KEY είναι σωστά στον κώδικα.</td></tr>`;
+                document.getElementById('bets-tbody').innerHTML = 
+                    `<tr><td colspan="8" class="error">❌ Σφάλμα φόρτωσης</td></tr>`;
+            }
+        }
+
+        // ============================================
+        // RENDER STATS CARDS
+        // ============================================
+        function renderStats(bets) {
+            const total = bets.length;
+            const wins = bets.filter(b => b.result === 'WIN').length;
+            const losses = bets.filter(b => b.result === 'LOSS').length;
+            const pending = bets.filter(b => b.result === 'PENDING').length;
+            const winRate = total > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
+
+            const totalPL = bets
+                .filter(b => b.profit_loss !== null)
+                .reduce((sum, b) => sum + parseFloat(b.profit_loss || 0), 0)
+                .toFixed(2);
+
+            document.getElementById('total-bets').textContent = total;
+            document.getElementById('win-rate').textContent = winRate + '%';
+            document.getElementById('total-pl').textContent = (totalPL >= 0 ? '+' : '') + totalPL + '€';
+            document.getElementById('total-pl').className = 'value ' + (totalPL >= 0 ? 'positive' : 'negative');
+            document.getElementById('pending-count').textContent = pending;
+        }
+
+        // ============================================
+        // RENDER MONTHLY SUMMARY
+        // ============================================
+        function renderMonthlySummary(bets) {
+            // Group by Year-Month
+            const groups = {};
+
+            bets.forEach(bet => {
+                const date = new Date(bet.match_date);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const key = `${year}-${String(month).padStart(2, '0')}`;
+
+                if (!groups[key]) {
+                    groups[key] = { year, month, bets: 0, wins: 0, losses: 0, pl: 0 };
+                }
+
+                groups[key].bets++;
+                if (bet.result === 'WIN') groups[key].wins++;
+                if (bet.result === 'LOSS') groups[key].losses++;
+                if (bet.profit_loss !== null) {
+                    groups[key].pl += parseFloat(bet.profit_loss || 0);
+                }
+            });
+
+            // Sort by date desc
+            const sortedKeys = Object.keys(groups).sort().reverse();
+
+            let html = '';
+            let currentYear = null;
+
+            sortedKeys.forEach(key => {
+                const g = groups[key];
+                const monthNames = ['','Ιαν','Φεβ','Μαρ','Απρ','Μαι','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'];
+                const winRate = g.bets > 0 ? ((g.wins / (g.wins + g.losses)) * 100).toFixed(1) : 0;
+                const plClass = g.pl >= 0 ? 'pl-positive' : 'pl-negative';
+                const plSign = g.pl >= 0 ? '+' : '';
+
+                html += `
+                    <tr>
+                        <td>${g.year}</td>
+                        <td>${monthNames[g.month]}</td>
+                        <td>${g.bets}</td>
+                        <td class="win">${g.wins}</td>
+                        <td class="loss">${g.losses}</td>
+                        <td>${winRate}%</td>
+                        <td class="${plClass}">${plSign}${g.pl.toFixed(2)}€</td>
+                    </tr>
+                `;
+            });
+
+            if (html === '') {
+                html = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">Δεν υπάρχουν δεδομένα ακόμα. Τρέξε το bot για να γεμίσει η βάση!</td></tr>';
+            }
+
+            document.getElementById('monthly-tbody').innerHTML = html;
+        }
+
+        // ============================================
+        // RENDER BETS TABLE
+        // ============================================
+        function renderBetsTable(bets, filter = 'all') {
+            let filtered = bets;
+            if (filter !== 'all') {
+                filtered = bets.filter(b => b.result === filter);
+            }
+
+            let html = '';
+            filtered.forEach(bet => {
+                const resultClass = bet.result === 'WIN' ? 'win' : (bet.result === 'LOSS' ? 'loss' : 'pending');
+                const pl = bet.profit_loss !== null ? parseFloat(bet.profit_loss).toFixed(2) : '-';
+                const plClass = bet.profit_loss !== null ? (bet.profit_loss >= 0 ? 'pl-positive' : 'pl-negative') : '';
+                const plSign = bet.profit_loss !== null && bet.profit_loss >= 0 ? '+' : '';
+
+                html += `
+                    <tr>
+                        <td>${bet.match_date}</td>
+                        <td>${bet.player1} vs ${bet.player2}</td>
+                        <td>${bet.selected_pick || '-'}</td>
+                        <td>€${bet.main_stake || '0.00'}</td>
+                        <td>€${bet.cover_stake || '0.00'}</td>
+                        <td>${bet.confidence || '-'}/10</td>
+                        <td class="${resultClass}">${bet.result}</td>
+                        <td class="${plClass}">${pl !== '-' ? plSign + pl + '€' : '-'}</td>
+                    </tr>
+                `;
+            });
+
+            if (html === '') {
+                html = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">Δεν υπάρχουν δεδομένα</td></tr>';
+            }
+
+            document.getElementById('bets-tbody').innerHTML = html;
+        }
+
+        function filterBets() {
+            const filter = document.getElementById('result-filter').value;
+            renderBetsTable(allBets, filter);
+        }
+
+        // ============================================
+        // INIT
+        // ============================================
+        loadTennisData();
+
+        // Auto-refresh every 6 hours
+        setInterval(loadTennisData, 21600000);  // Refresh every 6 hours
+    </script>
+</body>
+</html>
